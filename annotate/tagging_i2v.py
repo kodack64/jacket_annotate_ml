@@ -38,5 +38,7 @@ def I2vTaggingAll(base):
         cnt+=1
         print("{0}/{1}".format(cnt,allcnt))
 
+
 I2vTaggingAll("anime")
 I2vTaggingAll("jpop")
+I2vTagging("./test.jpg","./test.i2vresult")
