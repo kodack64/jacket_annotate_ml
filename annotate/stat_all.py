@@ -10,17 +10,19 @@ def loadMS(imgpath):
     fin.close()
     dat = json.loads(dat.decode())
 #    print(dat)
-    tags = dat["description"]["tags"]
+    tags = [[d["name"],d["confidence"]] for d in dat["tags"]]
+    desctags = [[d,1.0] for d in dat["description"]["tags"]]
     caption = dat["description"]["captions"][0]["text"]
     adultScore = dat["adult"]["adultScore"]
     racyScore = dat["adult"]["racyScore"]
     try:
-        categories = dat["categories"]
+        categories = [[d["name"],d["score"]] for d in dat["categories"]]
     except:
-        categories = {"name":"","score":0.0}
+        categories = {("",0.0)}
     color = dat["color"]
     rtn = {}
     rtn["mstags"]=tags
+    rtn["msdesctags"]=desctags
     rtn["caption"]=caption
     rtn["msrate"]={"adult":adultScore,"racy":racyScore}
     rtn["categories"]=categories
@@ -34,7 +36,7 @@ def loadGo(imgpath):
     fin.close()
     dat = json.loads(dat)
     try:
-        tags = [des["description"] for des in dat["responses"][0]["labelAnnotations"]]
+        tags = [(des["description"],des["score"]) for des in dat["responses"][0]["labelAnnotations"]]
     except:
         tags = []
     rtn = {"gotags":tags}
@@ -50,7 +52,15 @@ def loadI2v(imgpath):
     for item in dat["general"]:
         if(item[1]>0.1):
             tag.append(item)
-    rtn = {"i2vtags":tag,"i2vrate":rate}
+    copyright = []
+    for item in dat["copyright"]:
+        if(item[1]>0.1):
+            copyright.append(item)
+    character = []
+    for item in dat["character"]:
+        if(item[1]>0.1):
+            character.append(item)
+    rtn = {"i2vtags":tag,"i2vrate":rate,"i2vcr":copyright,"i2vch":character}
     return rtn
 
 def loadAllTag(imgpath):
@@ -64,7 +74,7 @@ def load(base):
     flist = glob.glob("./{0}/*/*.jpg".format(base))
     dat = []
     for ind,fn in enumerate(flist):
-        print("{0}/{1}".format(ind,len(flist)))
+        #print("{0}/{1}".format(ind,len(flist)))
         dat.append(loadAllTag(fn))
     fout = open(base+".pkl","wb")
     pickle.dump(dat,fout)

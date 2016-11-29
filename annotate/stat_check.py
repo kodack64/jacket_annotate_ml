@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import random
 from gensim import corpora
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import train_test_split
+from sklearn.cross_validation import train_test_split
 import numpy as np
 
 fin = open("anime.pkl","rb")
@@ -37,30 +37,79 @@ def getDominantColorRatio(c):
     return (ca/len(anime),cj/len(jpop))
 
 def checkColor():
+    label = []
+    ratanime = []
+    ratjpop = []
     for c in getColorSet():
-        print(c,getColorRatio(c))
-
+        rat = getDominantColorRatio(c)
+        print(c,rat)
+        label.append(c)
+        ratanime.append(rat[0])
+        ratjpop.append(rat[1])
+    left = np.array(list(range(len(label))))
+    plt.bar(left-0.2,ratanime,width=0.4,tick_label=label,align="center",color="red",label="anime")
+    plt.bar(left+0.2,ratjpop,width=0.4,tick_label=label,align="center",color="blue",label="jpop")
+    plt.ylabel("ratio")
+    plt.legend(loc=0)
+    plt.savefig("mscolor.png")
+    plt.show()
 #checkColor()
 
 ###################################################################################################
 
 def checkRate():
-    px = []
-    py = []
+    pxa = []
+    pya = []
+    pza = []
+    paa = []
+    pba = []
     random.shuffle(anime)
     random.shuffle(jpop)
-    for item in anime[:min(len(anime),len(jpop))]:
-        px.append(item["i2vrate"][0][1])
-        py.append(item["i2vrate"][1][1])
-    plt.scatter(px,[0]*len(px),c="red",label="anime")
-
-    px = []
-    py = []
-    for item in jpop[:min(len(anime),len(jpop))]:
-        px.append(item["i2vrate"][0][1])
-        py.append(item["i2vrate"][1][1])
-    plt.scatter(px,[1]*len(px),c="blue",label="jpop")
+    for item in anime:
+        pxa.append(item["i2vrate"][0][1])
+        pya.append(item["i2vrate"][1][1])
+        pza.append(item["i2vrate"][2][1])
+        paa.append(item["msrate"]["adult"])
+        pba.append(item["msrate"]["racy"])
+    pxj = []
+    pyj = []
+    pzj = []
+    paj = []
+    pbj = []
+    for item in jpop:
+        pxj.append(item["i2vrate"][0][1])
+        pyj.append(item["i2vrate"][1][1])
+        pzj.append(item["i2vrate"][2][1])
+        paj.append(item["msrate"]["adult"])
+        pbj.append(item["msrate"]["racy"])
+    plt.subplot(3,1,1)
+    plt.xlabel("safety")
+    plt.ylabel("ratio")
+    plt.hist(pxa,normed=True,bins=50,alpha=0.3,range=(0,1),label="jpop",color="red")
+    plt.hist(pxj,normed=True,bins=50,alpha=0.3,range=(0,1),label="anime",color="blue")
+    plt.subplot(3,1,2)
+    plt.xlabel("questionnaire")
+    plt.hist(pya,normed=True,bins=50,alpha=0.3,range=(0,1),label="jpop",color="red")
+    plt.hist(pyj,normed=True,bins=50,alpha=0.3,range=(0,1),label="anime",color="blue")
+    plt.subplot(3,1,3)
+    plt.xlabel("explicit")
+    plt.hist(pza,normed=True,bins=50,alpha=0.3,range=(0,1),label="jpop",color="red")
+    plt.hist(pzj,normed=True,bins=50,alpha=0.3,range=(0,1),label="anime",color="blue")
     plt.legend()
+    plt.savefig("i2vrate.png")
+    plt.show()
+
+    plt.subplot(2,1,1)
+    plt.xlabel("adult")
+    plt.ylabel("ratio")
+    plt.hist(paa,normed=True,bins=50,alpha=0.3,range=(0,1),label="jpop",color="red")
+    plt.hist(paj,normed=True,bins=50,alpha=0.3,range=(0,1),label="anime",color="blue")
+    plt.subplot(2,1,2)
+    plt.xlabel("racy")
+    plt.hist(pba,normed=True,bins=50,alpha=0.3,range=(0,1),label="jpop",color="red")
+    plt.hist(pbj,normed=True,bins=50,alpha=0.3,range=(0,1),label="anime",color="blue")
+    plt.legend()
+    plt.savefig("msrate.png")
     plt.show()
 #checkRate()
 
@@ -71,13 +120,13 @@ def getCategorySet():
     for item in anime:
         for c in item["categories"]:
             try:
-                catset.add(c["name"])
+                catset.add(c[0])
             except:
                 pass
     for item in jpop:
         for c in item["categories"]:
             try:
-                catset.add(c["name"])
+                catset.add(c[0])
             except:
                 pass
     return catset
@@ -91,14 +140,14 @@ def getCategoryRatio():
         for item in anime:
             for c in item["categories"]:
                 try:
-                    if(cat in c["name"]):
+                    if(cat in c[0]):
                         ca+=1
                 except:
                     pass
         for item in jpop:
             for c in item["categories"]:
                 try:
-                    if(cat in c["name"]):
+                    if(cat in c[0]):
                         cj+=1
                 except:
                     pass
@@ -107,7 +156,6 @@ def getCategoryRatio():
     rats.sort()
     for it in rats:
         print(it)
-
 #getCategoryRatio()
 
 
@@ -123,19 +171,20 @@ def makeCorpus():
     corp_jpop = []
 
     tagset = set([])
+    tag = "gotags"
     for item in anime:
-        if(len(item["gotags"])>0):
+        if(len(item[tag])>0):
             pack = []
-            for st in item["gotags"]:
-                st = st.replace(" ","")
+            for st in item[tag]:
+                st = st[0].replace(" ","")
                 tagset.add(st)
                 pack.append(st)
             corp_anime.append(" ".join(pack))
     for item in jpop:
-        if(len(item["gotags"])>0):
+        if(len(item[tag])>0):
             pack = []
-            for st in item["gotags"]:
-                st = st.replace(" ","")
+            for st in item[tag]:
+                st = st[0].replace(" ","")
                 tagset.add(st)
                 pack.append(st)
             corp_jpop.append(" ".join(pack))
@@ -163,7 +212,7 @@ def makeCorpus():
     from sklearn.grid_search import GridSearchCV
 
 
-    param = {"n_estimators" : list(range(20,40,1)), "max_depth":[2,3,4]}
+    param = {"n_estimators" : list(range(25,35,1)), "max_depth":[2]}
     rf = RandomForestClassifier()
 
     '''
@@ -211,24 +260,26 @@ def linearSep():
     corp_anime = []
     corp_jpop = []
 
+    print(anime[0])
     tagset = set([])
+    tag = "i2vtags"
     for item in anime:
-        if(len(item["gotags"])>0):
+        if(len(item[tag])>0):
             pack = []
-            for st in item["gotags"]:
-                st = st.replace(" ","")
+            for st in item[tag]:
+                st = st[0].replace(" ","")
                 tagset.add(st)
                 pack.append(st)
             corp_anime.append(" ".join(pack))
     for item in jpop:
-        if(len(item["gotags"])>0):
+        if(len(item[tag])>0):
             pack = []
-            for st in item["gotags"]:
-                st = st.replace(" ","")
+            for st in item[tag]:
+                st = st[0].replace(" ","")
                 tagset.add(st)
                 pack.append(st)
             corp_jpop.append(" ".join(pack))
-    trf = TfidfVectorizer(max_df=0.9,min_df=5)
+    trf = TfidfVectorizer(max_df=1.0,min_df=10)
     trf.fit(corp_anime+corp_jpop)
     xa = trf.transform(corp_anime).toarray()
     xj = trf.transform(corp_jpop).toarray()
@@ -258,11 +309,64 @@ def linearSep():
         return [key for key, value in voc.items() if value == id][0]
     feats = [[rf.coef_[0][i],getIdKey(v)] for i,v in enumerate(supIndex)]
     feats.sort()
-    print("\n".join(list(map(str,feats))[:20]))
+    print("\n".join(list(map(str,feats[0:5]))))
     feats.reverse()
-    print("\n".join(list(map(str,feats))[:20]))
+    print("\n".join(list(map(str,feats[0:5]))))
 
 #    feats = [[abs(rf.coef_[0][i]),rf.coef_[0][i],v,getIdKey(v)] for i,v in enumerate(supIndex)]
 #    feats.sort()
 #    print("\n".join(list(map(str,feats))[::-1]))
-linearSep()
+#linearSep()
+
+def expl():
+    import io, sys
+    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    tagset = set([])
+    tags = ["i2vtags","mstags","gotags"]
+    for tag in tags:
+        for item in anime:
+            for st in item[tag]:
+                t = tag+"_"+st[0].replace(" ","_")
+                tagset.add(t)
+        for item in jpop:
+            for st in item[tag]:
+                t = tag+"_"+st[0].replace(" ","_")
+                tagset.add(t)
+    idtag=list(tagset)
+    idtag.sort()
+    idtag = ["anime/jpop"]+idtag
+    tagid = {}
+    for id,tag in enumerate(idtag):
+        tagid[tag]=id
+    feature = np.zeros((len(anime)+len(jpop),len(idtag)))
+    cnt = 0
+    for item in anime:
+        for tag in tags:
+            for st in item[tag]:
+                t = tag+"_"+st[0].replace(" ","_")
+                feature[cnt][tagid[t]]=st[1]
+        feature[cnt][0]=1
+        cnt+=1
+    for item in jpop:
+        for tag in tags:
+            for st in item[tag]:
+                t = tag+"_"+st[0].replace(" ","_")
+                feature[cnt][tagid[t]]=st[1]
+        feature[cnt][0]=0
+        cnt+=1
+    from sklearn.decomposition import PCA
+    pca = PCA()
+    pca.fit(feature)
+    mat = pca.get_covariance()
+    covs = list(zip(mat[0][1:],idtag[1:]))
+    covs.sort()
+    import codecs
+    fout = codecs.open("cor.txt","w",encoding="utf-8")
+    for item in covs:
+        fout.write("{0} {1}\n".format(item[0],item[1]))
+    fout.close()
+    print(covs[:10])
+    print(covs[::-1][:10])
+expl()
