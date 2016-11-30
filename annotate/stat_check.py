@@ -347,14 +347,14 @@ def expl():
             for st in item[tag]:
                 t = tag+"_"+st[0].replace(" ","_")
                 feature[cnt][tagid[t]]=st[1]
-        feature[cnt][0]=0
+        feature[cnt][0]=1
         cnt+=1
     for item in jpop:
         for tag in tags:
             for st in item[tag]:
                 t = tag+"_"+st[0].replace(" ","_")
                 feature[cnt][tagid[t]]=st[1]
-        feature[cnt][0]=1
+        feature[cnt][0]=0
         cnt+=1
     from sklearn.decomposition import PCA
     pca = PCA()
@@ -394,7 +394,7 @@ def expl():
 
     print(covs[:10])
     print(covs[::-1][:10])
-#expl()
+expl()
 
 def corplot():
     fin = open("cor.txt")
@@ -432,7 +432,7 @@ def corplot():
     plt.savefig("corhist.png")
     plt.show()
     fin.close()
-#corplot()
+corplot()
 
 def precision():
     import io, sys
