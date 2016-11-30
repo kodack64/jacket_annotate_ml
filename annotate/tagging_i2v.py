@@ -41,4 +41,4 @@ def I2vTaggingAll(base):
 
 I2vTaggingAll("anime")
 I2vTaggingAll("jpop")
-I2vTagging("./test.jpg","./test.i2vresult")
+I2vTagging("./test2.jpg","./test2.i2vresult")

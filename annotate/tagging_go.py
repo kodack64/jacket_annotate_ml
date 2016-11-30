@@ -60,4 +60,4 @@ def GoTaggingAll(base):
 
 GoTaggingAll("anime")
 GoTaggingAll("jpop")
-GoTagging("./test.jpg","./test.result")
+GoTagging("./test2.jpg","./test2.goresult")

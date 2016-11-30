@@ -55,4 +55,4 @@ def MSTaggingAll(base):
 
 MSTaggingAll("anime")
 MSTaggingAll("jpop")
-MSTagging("./test.jpg","./test.msresult")
+MSTagging("./test2.jpg","./test2.msresult")

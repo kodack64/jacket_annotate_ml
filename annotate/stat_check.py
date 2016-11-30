@@ -456,7 +456,7 @@ def precision():
     tagid = {}
     for id,tag in enumerate(idtag):
         tagid[tag]=id
-    feature = np.zeros((len(anime)+len(jpop),len(idtag)))
+    feature = np.zeros((len(jpop)*2,len(idtag)))
     cnt = 0
     for item in anime[:len(jpop)]:
         for tag in tags:
@@ -540,4 +540,74 @@ def precision():
         fout.write(str(item)+"\n")
     fout.close()
 
-precision()
+#precision()
+
+def PCAPlot():
+    import io, sys
+    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    tagset = set([])
+#    tags = ["i2vtags","mstags","gotags"]
+    tags = ["gotags"]
+    for tag in tags:
+        for item in anime:
+            for st in item[tag]:
+                t = tag+"_"+st[0].replace(" ","_")
+                tagset.add(t)
+        for item in jpop:
+            for st in item[tag]:
+                t = tag+"_"+st[0].replace(" ","_")
+                tagset.add(t)
+    idtag=list(tagset)
+    idtag.sort()
+    idtag = ["anime/jpop"]+idtag
+    tagid = {}
+    for id,tag in enumerate(idtag):
+        tagid[tag]=id
+    feature = np.zeros((len(jpop)*2,len(idtag)-1))
+    cnt = 0
+    for item in anime[:len(jpop)]:
+        for tag in tags:
+            for st in item[tag]:
+                t = tag+"_"+st[0].replace(" ","_")
+                feature[cnt][tagid[t]-1]=st[1]
+        cnt+=1
+    for item in jpop:
+        for tag in tags:
+            for st in item[tag]:
+                t = tag+"_"+st[0].replace(" ","_")
+                feature[cnt][tagid[t]-1]=st[1]
+        cnt+=1
+    from sklearn.decomposition import PCA
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+#    pca = PCA(n_components=2)
+#    xtr = pca.fit_transform(feature)
+#    plt.scatter(xtr[:len(jpop),0],xtr[:len(jpop),1],color="red",label="anime")
+#    plt.scatter(xtr[len(jpop):,0],xtr[len(jpop):,1],color="blue",label="jpop")
+#    plt.legend()
+#    plt.show()
+    target = [0]*len(jpop)+[1]*len(jpop)
+    xtr1,xte1,ytr1,yte1 = train_test_split(feature[:len(jpop)],[0]*len(jpop),test_size=0.2)
+    xtr2,xte2,ytr2,yte2 = train_test_split(feature[len(jpop):],[1]*len(jpop),test_size=0.2)
+    xtr = list(xtr1)+list(xtr2)
+    xte = list(xte1)+list(xte2)
+    ytr = list(ytr1)+list(ytr2)
+    yte = list(yte1)+list(yte2)
+    lda = LinearDiscriminantAnalysis()
+    ytrp = lda.fit_transform(xtr,ytr)
+    ytep = lda.transform(xte)
+    print(lda.score(xtr,ytr),lda.score(xte,yte))
+    plt.subplot(2,1,1)
+    plt.hist(ytrp[:len(ytrp)/2],normed=True,bins=50,alpha=0.3,label="anime",color="red")
+    plt.hist(ytrp[len(ytrp)/2:],normed=True,bins=50,alpha=0.3,label="jpop",color="blue")
+    plt.xlabel("train")
+    plt.legend()
+    plt.subplot(2,1,2)
+    plt.hist(ytep[:len(ytep)/2],normed=True,bins=50,range=(-20,20),alpha=0.3,label="anime",color="red")
+    plt.hist(ytep[len(ytep)/2:],normed=True,bins=50,range=(-20,20),alpha=0.3,label="jpop",color="blue")
+    plt.xlabel("test")
+    plt.legend()
+    plt.savefig("lda.png")
+    plt.show()
+PCAPlot()
