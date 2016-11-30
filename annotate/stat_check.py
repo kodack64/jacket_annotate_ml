@@ -548,8 +548,8 @@ def PCAPlot():
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
     tagset = set([])
-#    tags = ["i2vtags","mstags","gotags"]
-    tags = ["gotags"]
+    tags = ["i2vtags","mstags","gotags"]
+#    tags = ["gotags"]
     for tag in tags:
         for item in anime:
             for st in item[tag]:
@@ -581,12 +581,13 @@ def PCAPlot():
         cnt+=1
     from sklearn.decomposition import PCA
     from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-#    pca = PCA(n_components=2)
-#    xtr = pca.fit_transform(feature)
-#    plt.scatter(xtr[:len(jpop),0],xtr[:len(jpop),1],color="red",label="anime")
-#    plt.scatter(xtr[len(jpop):,0],xtr[len(jpop):,1],color="blue",label="jpop")
-#    plt.legend()
-#    plt.show()
+    pca = PCA(n_components=2)
+    xtr = pca.fit_transform(feature)
+    plt.scatter(xtr[:len(jpop),0],xtr[:len(jpop),1],color="red",label="anime")
+    plt.scatter(xtr[len(jpop):,0],xtr[len(jpop):,1],color="blue",label="jpop")
+    plt.legend()
+    plt.savefig("pca.png")
+    plt.show()
     target = [0]*len(jpop)+[1]*len(jpop)
     xtr1,xte1,ytr1,yte1 = train_test_split(feature[:len(jpop)],[0]*len(jpop),test_size=0.2)
     xtr2,xte2,ytr2,yte2 = train_test_split(feature[len(jpop):],[1]*len(jpop),test_size=0.2)
