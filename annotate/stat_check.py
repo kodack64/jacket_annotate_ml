@@ -347,6 +347,122 @@ def expl():
             for st in item[tag]:
                 t = tag+"_"+st[0].replace(" ","_")
                 feature[cnt][tagid[t]]=st[1]
+        feature[cnt][0]=0
+        cnt+=1
+    for item in jpop:
+        for tag in tags:
+            for st in item[tag]:
+                t = tag+"_"+st[0].replace(" ","_")
+                feature[cnt][tagid[t]]=st[1]
+        feature[cnt][0]=1
+        cnt+=1
+    from sklearn.decomposition import PCA
+    pca = PCA()
+    pca.fit(feature)
+    mat = pca.get_covariance()
+    covs = list(zip(mat[0][1:],idtag[1:]))
+    covs.sort()
+    cors = []
+    for ind in range(len(mat[0])):
+        cors.append([mat[0][ind]/np.sqrt(mat[ind][ind]*mat[0][0]),idtag[ind]])
+    cors.sort()
+    import codecs
+    fout = codecs.open("cov.txt","w",encoding="utf-8")
+    for item in covs:
+        fout.write("{0} {1}\n".format(item[0],item[1]))
+    fout.close()
+    fout = codecs.open("cor.txt","w",encoding="utf-8")
+    for item in cors:
+        fout.write("{0} {1}\n".format(item[0],item[1]))
+    fout.close()
+
+    corsgo = [d for d in cors if "gotags_" in d[1]]
+    corsms = [d for d in cors if "mstags_" in d[1]]
+    corsi2v = [d for d in cors if "i2vtags_" in d[1]]
+    fout = codecs.open("cor_go.txt","w",encoding="utf-8")
+    for item in corsgo:
+        fout.write("{0} {1}\n".format(item[0],item[1]))
+    fout.close()
+    fout = codecs.open("cor_ms.txt","w",encoding="utf-8")
+    for item in corsms:
+        fout.write("{0} {1}\n".format(item[0],item[1]))
+    fout.close()
+    fout = codecs.open("cor_i2v.txt","w",encoding="utf-8")
+    for item in corsi2v:
+        fout.write("{0} {1}\n".format(item[0],item[1]))
+    fout.close()
+
+    print(covs[:10])
+    print(covs[::-1][:10])
+#expl()
+
+def corplot():
+    fin = open("cor.txt")
+    go = []
+    i2v = []
+    ms = []
+    for line in fin:
+        elem = line.split(" ")
+        if("gotags_" in elem[1]):
+            go.append(float(elem[0]))
+        elif("i2vtags_" in elem[1]):
+            i2v.append(float(elem[0]))
+        elif("mstags_" in elem[1]):
+            ms.append(float(elem[0]))
+        else:
+            print("unknown tag {0}".format(elem[1]))
+    plt.subplot(3,1,1)
+    st = -0.25
+    en = 0.25
+    bins=100
+    plt.ylabel("ratio")
+    plt.ylim([0,15])
+    plt.hist(go,normed=True,bins=bins,alpha=1.0,range=(st,en),color="red",label="google")
+    plt.legend()
+    plt.subplot(3,1,2)
+    plt.ylim([0,15])
+    plt.ylabel("ratio")
+    plt.hist(ms,normed=True,bins=bins,alpha=1.0,range=(st,en),color="red",label="microsoft")
+    plt.legend()
+    plt.subplot(3,1,3)
+    plt.ylim([0,15])
+    plt.ylabel("ratio")
+    plt.hist(i2v,normed=True,bins=bins,alpha=1.0,range=(st,en),color="red",label="Illustration2Vec")
+    plt.legend()
+    plt.savefig("corhist.png")
+    plt.show()
+    fin.close()
+#corplot()
+
+def precision():
+    import io, sys
+    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    tagset = set([])
+    tags = ["i2vtags","mstags","gotags"]
+    for tag in tags:
+        for item in anime[:len(jpop)]:
+            for st in item[tag]:
+                t = tag+"_"+st[0].replace(" ","_")
+                tagset.add(t)
+        for item in jpop:
+            for st in item[tag]:
+                t = tag+"_"+st[0].replace(" ","_")
+                tagset.add(t)
+    idtag=list(tagset)
+    idtag.sort()
+    idtag = ["anime/jpop"]+idtag
+    tagid = {}
+    for id,tag in enumerate(idtag):
+        tagid[tag]=id
+    feature = np.zeros((len(anime)+len(jpop),len(idtag)))
+    cnt = 0
+    for item in anime[:len(jpop)]:
+        for tag in tags:
+            for st in item[tag]:
+                t = tag+"_"+st[0].replace(" ","_")
+                feature[cnt][tagid[t]]=st[1]
         feature[cnt][0]=1
         cnt+=1
     for item in jpop:
@@ -356,17 +472,72 @@ def expl():
                 feature[cnt][tagid[t]]=st[1]
         feature[cnt][0]=0
         cnt+=1
-    from sklearn.decomposition import PCA
-    pca = PCA()
-    pca.fit(feature)
-    mat = pca.get_covariance()
-    covs = list(zip(mat[0][1:],idtag[1:]))
-    covs.sort()
+
+    percAnime = [0.0]*(len(feature[0])-1)
+    percJpop = [0.0]*(len(feature[0])-1)
+    percSum = [0.0]*(len(feature[0])-1)
+    for itemId in range(len(feature)):
+        percSum += feature[itemId][1:]
+        if(feature[itemId][0]==1):
+            percAnime+=feature[itemId][1:]
+        else:
+            percJpop+=feature[itemId][1:]
+
+    feature[feature>0]=1
+    cntAnime = [0]*(len(feature[0])-1)
+    cntJpop = [0]*(len(feature[0])-1)
+    cntSum = [0]*(len(feature[0])-1)
+    for itemId in range(len(feature)):
+        cntSum += feature[itemId][1:]
+        if(feature[itemId][0]==1):
+            cntAnime+=feature[itemId][1:]
+        else:
+            cntJpop+=feature[itemId][1:]
+    percAnime = percAnime/percSum
+    percJpop = percJpop/percSum
+    cntAnime = cntAnime/cntSum
+    cntJpop = cntJpop/cntSum
+    cntItem = len(feature)
+    thr = 10
+    info = [[cntSum[ind],percSum[ind],idtag[ind+1],cntAnime[ind],cntJpop[ind],percAnime[ind],percJpop[ind]] for ind in range(len(percAnime)) if cntSum[ind]>=thr]
+    info.sort()
     import codecs
-    fout = codecs.open("cor.txt","w",encoding="utf-8")
-    for item in covs:
-        fout.write("{0} {1}\n".format(item[0],item[1]))
+    fout = codecs.open("precision.txt","w",encoding="utf-8")
+    for item in info:
+        fout.write(str(item)+"\n")
     fout.close()
-    print(covs[:10])
-    print(covs[::-1][:10])
-expl()
+
+    info_go = [d for d in info if "gotags_" in d[2]]
+    info_ms = [d for d in info if "mstags_" in d[2]]
+    info_i2v = [d for d in info if "i2vtags_" in d[2]]
+    fout = codecs.open("precision_go.txt","w",encoding="utf-8")
+    for item in info_go:
+        fout.write(str(item)+"\n")
+    fout.close()
+    fout = codecs.open("precision_ms.txt","w",encoding="utf-8")
+    for item in info_ms:
+        fout.write(str(item)+"\n")
+    fout.close()
+    fout = codecs.open("precision_i2v.txt","w",encoding="utf-8")
+    for item in info_i2v:
+        fout.write(str(item)+"\n")
+    fout.close()
+
+    info_go.sort(key = lambda x: x[3])
+    info_ms.sort(key = lambda x: x[3])
+    info_i2v.sort(key = lambda x: x[3])
+
+    fout = codecs.open("precision_go_sort.txt","w",encoding="utf-8")
+    for item in info_go:
+        fout.write(str(item)+"\n")
+    fout.close()
+    fout = codecs.open("precision_ms_sort.txt","w",encoding="utf-8")
+    for item in info_ms:
+        fout.write(str(item)+"\n")
+    fout.close()
+    fout = codecs.open("precision_i2v_sort.txt","w",encoding="utf-8")
+    for item in info_i2v:
+        fout.write(str(item)+"\n")
+    fout.close()
+
+precision()
